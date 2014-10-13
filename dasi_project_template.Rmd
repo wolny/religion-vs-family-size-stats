@@ -1,0 +1,161 @@
+---
+title: "Religion and family size"
+
+output:
+  html_document:
+    theme: cerulean
+---
+
+<!-- For more info on RMarkdown see http://rmarkdown.rstudio.com/ -->
+
+<!-- Enter the code required to load your data in the space below. The data will be loaded but the line of code won't show up in your write up (echo=FALSE) in order to save space-->
+```{r echo=FALSE}
+load(url("http://bit.ly/dasi_gss_data"))
+```
+
+<!-- In the remainder of the document, add R code chunks as needed -->
+
+### Introduction:
+
+
+Based on the [data](http://bit.ly/dasi_gss_data) collected by the General Social Survey (GSS) the project tries to answer the following question:  
+
+**Is there a relationship between religious affiliation of married adults in the US and their family size?**  
+
+There is a common belief that some religious groups tend to have largeer families than other gropus.
+I was wandering if this opinion corresponds to reality and if it can be proven or denied via statistical inference. If in fact there is a relationship between religion and family size, I would be interesed in the characteristics of a given religion that cause its believers to have more (or less) children than average.  
+
+The answer the initial question may prove to be useful, because if religion and the family size are indeed dependent, the information can be used by others to predict cultural and demographic changes, based on the proportions of religious affiliation of people in the society.
+
+### Data:
+
+The data set used in the project comes from the General Social Survey (GSS) Cumulative File, which contains data on demographic characteristics and attitudes of residents of the United States collected between 1972-2012. The survey contains responses from 57,061 randomly selected adults from US. Each case in the dataset consists of a list of answers to 114 questions collected during a face-to-face interview.  
+
+We will try to answer our research question using the subset of GSS file, which contains only data from the last 10 years (2003-2012), so the answer will be based on relatively recent data. Within the subset, we are interested only in people which are married, and which provided the answers to the questions about the number of children they have and their religious preferences. From the 114 variables available in the original set we will consider only two categorical variables, namely:   
+1. **Religious group** (for simplicity, we are considering only the major religions as defined by: http://en.wikipedia.org/wiki/Major_religious_groups) - (explanatory variable) can take on one of following values: *Christianity*, *Islam*, *Unaffiliated*, *Buddhism*, *Hinduism*, *Judaism*.  
+2. **Large family** (defined as a family, which has more than 2 children ) - (response variable) can take one of the following values: *TRUE* if the person answered that she has more than 2 children, *FALSE* - otherwise.
+
+So in the end each case in our final dataset consists of two values representing the two categorical variables which we are investigating: **Religious group** and **Large family**.  
+The following transformations were applied to the original set in order to get the contingency table for the two categorical variables in question:
+
+```{r}
+# get only cases which represents people interviewed after 2002
+since_2003 <- subset(gss, gss$year > 2002)
+
+# define function which maps religion values in the original dataset (gss$relig) to the main religion groups as defined by: http://en.wikipedia.org/wiki/Major_religious_groups
+major_religion <- function(r) {
+  if (r %in% c('Protestant', 'Catholic', 'Orthodox-Christian', 'Christian', 'Inter-Nondenominational')) {
+    'Christianity'
+  } else if (r == 'Moslem/Islam') {
+    'Islam'
+  } else if (r == 'None') {
+    'Unaffiliated'
+  } else if (r == 'Hinduism') {
+    'Hinduism'
+  } else if (r == 'Buddhism') {
+    'Buddhism'
+  } else if (r == 'Jewish') {
+    'Judaism'
+  } else {
+    'Other'
+  }
+}
+
+# get only people which are married, for which we have information about number of children and religious preferences. Take into consideration only major religions.
+married_major_religion <- subset(since_2003, since_2003$marital == 'Married' & !is.na(since_2003$childs) & !is.na(since_2003$relig) & !(since_2003$relig %in% c('Other', 'Native American', 'Other Eastern')))
+
+# define 'Large family' as TRUE if the person answered that she has more than 2 children
+large_family <- sapply(married_major_religion$childs, function(x) x > 2)
+
+# map gss$relig values to major religion groups with 'major_religion' function
+religious_group <- sapply(married_major_religion$relig, major_religion)
+
+# create contingency table
+tbl <- table(religious_group, large_family)
+
+```
+
+Our research question refers to the target population, which in this case consists of all adult married US residents.  
+The proposal is based on a retrospective, observational study, because the data consists of the responses collected during a face-to-face interview with a randomly-selected respondents from the US. In the light of the above the results of the study can be generalized to the population of interest (assuming the sample is unbiased, see the next section).  
+
+Due to the fact that a simple random sampling was used to collect data from the population the possibility of bias is reduced. However we do not know if the non-response to the survey was high, so it is unclear whether the sample is representative of the population in question.  
+
+This is an observational study, therefore results should not be used to establish the causal connection between the two variables in question. In order to investigate the causal connection experiment should be conducted. This is not an experiment, because explanatory variable (*Religious group*) was not assigned to each of the subjects beforehand.
+
+### Exploratory data analysis:
+A contingency table for the *Religious group* and *Large family* from the data set described in the previous chapter is shown below.
+```{r, echo=FALSE}
+tbl
+```
+There are 6315 cases in the data set. We are interesed in how the proportions of large familes changes within each religious group. We can visualize this information using mosaic plot (See below: *Religion vs family size*)
+
+```{r, echo=FALSE}
+mosaicplot(tbl, main="Religion vs family size")
+```  
+
+The figure clearly shows that proportions of large families vary significantly between the religious groups. The highest rate of large families can be found among Christians and Muslims, with the latter having the highest proportion of large families. Jewish people and those who declare themselves unaffiliated have similar proportions of large families (these proportions are visibly lower than of Muslims and Christians). The lowest rates can be found among Buddhists and Hindus, with the latter having the lowest rate of large families. The plot also clearly shows that there are way more cases associated with Christianity than other religion. Buddhism, Hinduism and Islam have the lowest number of cases in our data set.  
+
+To be more precise we can find the exact values of the proportions using the following code:
+```{r}
+# sample proportion of the large families
+prop.table(table(large_family))
+
+# relative frequency table of the proportions of large families within major religious groups in US
+prop.table(tbl, 1)
+```  
+
+The proportion for the whole sample is roughly *37%*. Large families proportions for Christians(39%) and Muslims(44%) are above the sample proportion. Hindus(6%) and Buddhists(15%) have the lowest rates of large families. Unaffiliated and Jewish people have larege families proportions of 25% and 24% respectively.  
+
+**Since the proportion of large families changes across the major religious groups in US, we can
+conclude the variables are associated.**
+
+
+### Inference:
+
+We are going to use Chi-squared test of independence in order to test whether the religious affiliations of adults in the US and their family sizes are dependent at 0.05 significance level.  
+
+* *H_0* (null hypothesis): Religious affiliation and family size are **independent**. Large families rates do not vary by religion.
+* *H_1* (alternative hypothesis): Religious affiliation and family size are **dependent**. Large families rates do vary between major religious groups in US.
+
+Conditions for chi-square test:  
+
+* samples are independent, because random sampling was used  
+* the sampling was without replacement and 6315 is lest than 10% of the US population of married adults  
+* people cannot declare they belong to multiple religious groups, so each case only contribute to one cell in the contingency table  
+* sample size: each major religious group contains at least 5 cases  
+
+**Test results:**  
+
+```{r}
+chisq.test(tbl)
+```
+
+We apply the chi-squared test function to the contingency table (*tbl*). We found the chi-squared statistics to be **86.23**. In order to compute the p-value (probability of observed or more extreme outcome, given that null hypothesis is true) associated with this hypothesis test we use chi-squared distribution with 5 degrees of freedom. In case of chi-squared test of independence the number of degrees of freedom is equal to $(number\_of\_rows - 1) * (number\_of\_columns - 1)$, which in this case is equal: $(2 - 1) * (6 - 1) = 5$. We already calculated the p-value using *chisq.test* function, but we can also compute it explicitly using *pchisq*:  
+```{r}
+pchisq(86.23, 5, lower.tail = FALSE)
+```
+
+Note that the value found with *pchisq* agrees with the p-value obtained from *chisq.test* (which says that p-value is lower than 2.2e-16).  
+
+We found the p-value to be less than **2.2e-16**.
+
+As the p-value is much lower than the 0.05 significance level, we reject the null hypothesis that religious affiliation and family size are **independent**.
+
+### Conclusion:
+
+The data in the contingency table (*tbl*) provide convincing evidence that religious affiliations of married adults in the US and family sizes are associated.  
+
+From the exploratory analysis we can see that christianity is the major religion in US (83% of the cases).
+
+One may perform further studies and experiments in order to find out more about the relationship between the religion and family size, e.g. one may ask what is the attitude towards contraception in a particular religious group, or how women are perceived in a given religion.
+
+### References
+* http://bit.ly/dasi_gss_data
+* http://en.wikipedia.org/wiki/Major_religious_groups
+
+### Appendix
+Sample 20 cases from the dataset:
+```{r}
+head(cbind(religious_group, large_family), n = 20)
+```
+
